@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  postgres:
+    image: harbor.narvanventures.com/dockerhub/postgres:14
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+
+
+  clickhouse:
+    image: harbor.narvanventures.com/dockerhub/clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+
+  jobmanager:
+    build:
+      context: .
+      dockerfile: Dockerfile.jobmanager
+    container_name: jobmanager
+    depends_on:
+      - postgres
+      - clickhouse
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./flink_conf:/opt/flink/conf
+      - ./sql:/sql
+    command: jobmanager
+
+  taskmanager:
+    build:
+      context: .
+      dockerfile: Dockerfile.taskmanager
+    container_name: taskmanager
+    depends_on:
+      - jobmanager
+      - postgres
+      - clickhouse
+    volumes:
+      - ./flink_conf:/opt/flink/conf
+    command: taskmanager
