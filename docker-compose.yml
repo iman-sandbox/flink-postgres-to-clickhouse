@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   postgres:
     image: harbor.narvanventures.com/dockerhub/postgres:14
@@ -12,14 +13,21 @@ services:
     volumes:
       - ./postgresql.conf:/etc/postgresql/postgresql.conf
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
-
+    networks:
+      - flink-net
 
   clickhouse:
     image: harbor.narvanventures.com/dockerhub/clickhouse/clickhouse-server:latest
     container_name: clickhouse
+    environment:
+      - CLICKHOUSE_DB=default
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=default
     ports:
       - "8123:8123"
       - "9000:9000"
+    networks:
+      - flink-net
 
   jobmanager:
     build:
@@ -35,6 +43,8 @@ services:
       - ./flink_conf:/opt/flink/conf
       - ./sql:/sql
     command: jobmanager
+    networks:
+      - flink-net
 
   taskmanager:
     build:
@@ -48,3 +58,9 @@ services:
     volumes:
       - ./flink_conf:/opt/flink/conf
     command: taskmanager
+    networks:
+      - flink-net
+
+networks:
+  flink-net:
+    external: true

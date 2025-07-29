@@ -1,4 +1,9 @@
 #!/bin/bash
+
+
+# Ensure external network exists
+docker network inspect flink-net >/dev/null 2>&1 || docker network create flink-net
+
 docker compose down -v
 docker compose build
 docker compose up -d
@@ -25,3 +30,6 @@ EOSQL
 
 echo "Creating ClickHouse target table..."
 docker exec clickhouse clickhouse-client -q "CREATE TABLE IF NOT EXISTS default.postgres_test (id Int32, name String, description String) ENGINE = MergeTree() ORDER BY id"
+
+echo "Submitting CDC Flink SQL pipeline..."
+docker exec -i jobmanager ./bin/sql-client.sh -f /sql/01_init.sql

@@ -1,31 +1,42 @@
-CREATE TABLE postgres_test_source (
-  id INT,
-  name STRING,
-  description STRING
+-- Postgres CDC source
+CREATE TABLE postgres_test (
+  id           INT,
+  name         STRING,
+  description  STRING
 ) WITH (
-  'connector' = 'postgres-cdc',
-  'hostname' = 'postgres',
-  'port' = '5432',
-  'username' = 'postgres',
-  'password' = 'postgres',
-  'database-name' = 'postgres',
-  'schema-name' = 'public',
-  'table-name' = 'test',
-  'slot.name' = 'flink'
+  'connector'      = 'postgres-cdc',
+  'hostname'       = 'postgres',
+  'port'           = '5432',
+  'username'       = 'postgres',
+  'password'       = 'postgres',
+  'database-name'  = 'postgres',
+  'schema-name'    = 'public',
+  'table-name'     = 'test',
+  'slot.name'      = 'flink'
 );
 
+-- ClickHouse sink (use the dedicated connector, not generic JDBC)
 CREATE TABLE clickhouse_sink (
   id INT,
   name STRING,
-  description STRING
+  description STRING,
+  PRIMARY KEY (id) NOT ENFORCED
 ) WITH (
-  'connector' = 'jdbc',
-  'url' = 'jdbc:clickhouse://clickhouse:8123/default',
+  'connector' = 'clickhouse',
+  'url' = 'jdbc:clickhouse://clickhouse:9009',
+  'database-name' = 'default',
   'table-name' = 'postgres_test',
-  'driver' = 'ru.yandex.clickhouse.ClickHouseDriver',
   'username' = 'default',
-  'password' = ''
+  'password' = '',
+  'sink.batch-size' = '1000',
+  'sink.flush-interval' = '1s',
+  'sink.max-retries' = '3',
+  'sink.ignore-delete' = 'true',
+  'sink.update-strategy' = 'insert'
 );
 
+
+
 INSERT INTO clickhouse_sink
-SELECT * FROM postgres_test_source;
+SELECT id, name, description FROM postgres_test;
+
